@@ -9,8 +9,17 @@ const urlDatabase = {
 };
 
 //ROUTES/ENDPOINTS
+
 app.get("/", (req, res) => {
-  res.send("Hello!");
+  res.send("Hello!2");
+});
+
+app.get("/urls.json", (req, res) => {
+  res.json(urlDatabase);
+});
+
+app.get("/hello", (req, res) => {
+  res.send("<html><body>Hello <b>World</b></body></html>\n");
 });
 
 //LISTNER
