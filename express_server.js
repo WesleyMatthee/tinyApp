@@ -18,13 +18,22 @@ app.get("/urls", (req, res) => {
   res.render("urls_index", templateVars);
 });
 
+//User login && cookies
+app.post("/login", (req, res) => {
+  res.cookie('username', req.body.username);
+  res.redirect("/urls");
+});
+
 
 app.get("/", (req, res) => {
   res.send("Hello!2");
 });
 
 app.get("/urls/new", (req, res) => {
-  res.render("urls_new");
+  const templateVars = {
+    username: req.cookies["username"],
+  };
+  res.render("urls_new", templateVars);
 });
 
 app.get("/urls/:id", (req, res) => {
@@ -56,17 +65,16 @@ app.post("/urls/:id/delete", (req, res) => {
   delete urlDatabase[urlToDelete];
   res.redirect("/urls");
 });
-//???????
+//Edit submit
 app.post("/urls/:id/", (req, res) => {
   urlDatabase[req.params.id] = req.body.updatedUrl;
   res.redirect("/urls");
-})
+});
 
 app.get("/u/:id", (req, res) => {
   const longURL = urlDatabase[req.params.id];
   res.redirect(longURL);
 });
-
 
 //LISTNER
 app.listen(PORT, () => {
