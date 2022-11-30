@@ -1,5 +1,7 @@
 //REQUIREMENTS
 const express = require("express");
+const cookieParser = require('cookie-parser');
+
 const app = express();
 const PORT = 8080; // default port 8080
 
@@ -11,27 +13,40 @@ const urlDatabase = {
 };
 
 app.use(express.urlencoded({ extended: true })); //this parses for readablilty
+app.use(cookieParser())
 
 //ROUTES/ENDPOINTS
 app.get("/urls", (req, res) => {
-  const templateVars = { urls: urlDatabase };
+  const templateVars = {
+    username: req.cookies["username"],  
+    urls: urlDatabase 
+  };
+  
   res.render("urls_index", templateVars);
 });
 
-//User login && cookies
+//LOGIN && cookies
 app.post("/login", (req, res) => {
-  res.cookie('username', req.body.username);
+  const username = req.body.username
+  res.cookie("username", username);
   res.redirect("/urls");
 });
 
+//LOGOUT
+app.post("/logout", (req, res) => {
+  console.log(req.body);
+  res.clearCookie("username");
+  res.redirect("/urls");
+})
 
 app.get("/", (req, res) => {
-  res.send("Hello!2");
+  res.send("Hello!");
 });
 
 app.get("/urls/new", (req, res) => {
   const templateVars = {
     username: req.cookies["username"],
+    urls: urlDatabase
   };
   res.render("urls_new", templateVars);
 });
