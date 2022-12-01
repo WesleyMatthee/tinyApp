@@ -6,25 +6,24 @@
       <span class="navbar-toggler-icon"></span>
     </button>
     <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
-      
+
       <div class="navbar-nav">
         <a class="nav-item nav-link" href="/urls">My URLs</a>
         <a class="nav-item nav-link" href="/urls/new">Create New URL</a>
-        <a class="nav-item nav-link" href="#">Login</a>
+
       </div>
     </div>
     <div>
 
-     <% if (user) { %>
-      <p><%= user.email %></p>
+     <% if (username) { %>
+      <p><%= username %></p>
       <form class="" action="/logout" method="POST">
         <button type="submit" class="btn btn-info">logout</button>
       </form>
 
-    <!-- login form -->
         <% } else { %>
       <form method="POST" action="/login" class="form-inline">
-          <input class="form-control" style="width: 200px; margin: 1em" type="text"  name="username" placeholder="username">
+          <input type="text"  name="username" placeholder="username">
          <button class="btn btn-outline-secondary" type="submit">Login</button>
       </form>
 <% } %>
@@ -33,4 +32,3 @@
     </div>
   </nav>
 </header>
-
