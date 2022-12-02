@@ -110,49 +110,6 @@ app.get("/urls", (req, res) => {
   res.render("urls_index", templateVars);
 });
 
-//POST LOGIN && cookies
-app.post("/login", (req, res) => {
-  const user_email = req.body.email;
-  const user_password = req.body.password;
-  const user = getUserByEmail(user_email);
-
-  if (user === null) {
-    return res.send(403, "You do not have rights to visit this page!");
-  }
-  if (!user_email || !user_password) {
-    return res.send(403, "Invalid email and password!");
-  }
-  console.log("user:", user);
-  console.log("user_password:", user_password);
-  if (user.password !== user_password) {
-    return res.send(403, "Your email or password is incorrect!");
-  }
-  const user_id = users["user_id"];
-  res.cookie("user_id", user.id);
-  res.redirect("/urls");
-});
-
-//GET LOGIN
-app.get("/login", (req, res) => {
-  const user = getUserFromReq(req);
-  if (user) {
-    res.redirect("/urls");
-
-  } else {
-    const templateVars =
-    {
-      user: user
-    };
-    res.render("urls_login", templateVars);
-  }
-});
-
-//LOGOUT
-app.post("/logout", (req, res) => {
-  //console.log(req.body);
-  res.clearCookie("user_id");
-  res.redirect("/login");
-});
 
 //GET REGISTRATION
 app.get("/register", (req, res) => {
@@ -185,14 +142,58 @@ app.post("/register", (req, res) => {
   users[user_id] = newUser;
   res.cookie("user_id", user_id);
   res.redirect("/urls");
-  //console.log(users);
+
 });
 
+//GET LOGIN
+app.get("/login", (req, res) => {
+  const user = getUserFromReq(req);
+  if (user) {
+    res.redirect("/urls");
+
+  } else {
+    const templateVars =
+    {
+      user: user
+    };
+    res.render("urls_login", templateVars);
+  }
+});
+
+//POST LOGIN && cookies
+app.post("/login", (req, res) => {
+  const user_email = req.body.email;
+  const user_password = req.body.password;
+  const user = getUserByEmail(user_email);
+
+  if (user === null) {
+    return res.send(403, "You do not have rights to visit this page!");
+  }
+  if (!user_email || !user_password) {
+    return res.send(403, "Invalid email and password!");
+  }
+  console.log("user:", user);
+  console.log("user_password:", user_password);
+  if (user.password !== user_password) {
+    return res.send(403, "Your email or password is incorrect!");
+  }
+  const user_id = users["user_id"];
+  res.cookie("user_id", user.id);
+  res.redirect("/urls");
+});
+
+//LOGOUT
+app.post("/logout", (req, res) => {
+  
+  res.clearCookie("user_id");
+  res.redirect("/login");
+});
 
 
 //GET URLS NEW
 app.get("/urls/new", (req, res) => {
   const user = getUserFromReq(req);
+
   if (!user) {
     res.redirect("/login");
     return;
@@ -202,38 +203,31 @@ app.get("/urls/new", (req, res) => {
     user: user
   };
   res.render("urls_new", templateVars);
-
-
 });
 
 //GET URLS ID
 app.get("/urls/:id", (req, res) => {
-  //------
   const userID = req.cookies.user_id;
   const user = urlDatabase[req.params.id];
-  console.log("userID:", userID);
-  console.log("user:", user);
+  //console.log("userID:", userID);
+  //console.log("user:", user);
+
   if (!user) {
     return res.send("<html><body>This url is not yours!</body></html>\n");
 
   }
-  //console.log(urlDatabase);
+
   if (user.userID !== userID) {
-    // urlDatabase[req.params.id].userID !== req.cookies.user_id
+
     res.send("<html><body>You are not logged in!</body></html>\n");
     return;
   }
-  // const longURL = urlDatabase[req.params.id].longURL;
-  // if (!longURL) {
-  //   return res.send("<html><body>url doesn't exist!</body></html>\n");
-  // }
-  //-------
+
   const templateVars = {
     user: users[req.cookies["user_id"]],
     id: req.params.id,
     longURL: urlDatabase[req.params.id].longURL
   };
-
 
   res.render("urls_show", templateVars);
 });
@@ -252,21 +246,21 @@ app.get("/hello", (req, res) => {
 //GENERATE RANDOM URL
 app.post("/urls", (req, res) => {
   const user = req.cookies["user_id"];
-  console.log(req.body);
-  console.log('user:', user);
+  // console.log(req.body);
+  // console.log('user:', user);
 
   if (!user) {
     res.send("<html><body>Please login to use Tiny App, thank you!</body></html>\n");
     return;
   }
-  console.log("urlDatabase 1:", urlDatabase);
+  //console.log("urlDatabase 1:", urlDatabase);
   const id = generateRandomString();
   const longURL = req.body.longURL;
   urlDatabase[id] = {
     longURL,
     userID: user
   };
-  console.log("urlDatabase 2:", urlDatabase);
+ // console.log("urlDatabase 2:", urlDatabase);
 
   res.redirect(`/urls/${id}`);
 });
@@ -298,13 +292,12 @@ app.post("/urls/:id/", (req, res) => {
     return;
   }
   if (!req.cookies["user_id"]) {
-    res.send('You are not logged in!');
+    res.send("You are not logged in!");
     return;
   }
   if (req.cookies["user_id"] !== urlDatabase[req.params.id].userID) {
-    res.send('You dont have permission to access urls!');
+    res.send("You don't have permission to access urls!");
   }
-
 
   urlDatabase[req.params.id].longURL = req.body.updatedUrl;
   res.redirect("/urls");
