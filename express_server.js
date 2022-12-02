@@ -2,9 +2,17 @@
 const express = require("express");
 const cookieParser = require('cookie-parser');
 const bcrypt = require("bcryptjs");
+const cookieSession = require("cookie-session");
+const { getUserByEmail } = require("./helpers.js");
 
 const app = express();
 const PORT = 8080; // default port 8080
+
+app.use(cookieSession({
+  name: "session",
+  keys: ['key1', 'key2']
+}));
+
 
 app.set("view engine", "ejs");//sets ejs as teplating engine
 
@@ -66,18 +74,11 @@ function generateRandomString() {
 };
 
 //GET USER BY EMAIL
-const getUserByEmail = function(email) {
-  for (const user in users) {
-    if (email === users[user].email) {
-      return users[user];
-    }
-  }
-  return null;
-};
+
 
 //GET USER FROM REQ
 const getUserFromReq = function(req) {
-  const userID = req.cookies.user_id;
+  const userID = req.session.user_id;
   const user = users[userID];
   if (!user) {
     return null;
@@ -96,7 +97,7 @@ app.get("/", (req, res) => {
 //GET URLS
 app.get("/urls", (req, res) => {
   console.log(urlDatabase);
-  const userID = req.cookies.user_id;
+  const userID = req.session.user_id;
   const user = users[userID];
   if (!user) {
     res.send("<html><body>Please <b>login</b> or <b>register</b></body></html>\n");
@@ -141,7 +142,7 @@ app.post("/register", (req, res) => {
     password: bcrypt.hashSync(req.body.password, 10)
   };
   users[user_id] = newUser;
-  res.cookie("user_id", user_id);
+  req.session.user_id = user_id;
   res.redirect("/urls");
 
 });
@@ -173,20 +174,18 @@ app.post("/login", (req, res) => {
   if (!user_email || !user_password) {
     return res.send(403, "Invalid email and password!");
   }
-  // console.log("user:", user);
-  // console.log("user_password:", user_password);
   if (!bcrypt.compareSync(user_password, user.password)) {
     return res.send(403, "Your email or password is incorrect!");
   }
   const user_id = users["user_id"];
-  res.cookie("user_id", user.id);
+  req.session.user_id = user.id  
   res.redirect("/urls");
 });
 
 //LOGOUT
 app.post("/logout", (req, res) => {
   
-  res.clearCookie("user_id");
+  req.session = null;
   res.redirect("/login");
 });
 
@@ -208,7 +207,7 @@ app.get("/urls/new", (req, res) => {
 
 //GET URLS ID
 app.get("/urls/:id", (req, res) => {
-  const userID = req.cookies.user_id;
+  const userID = req.session.user_id;
   const user = urlDatabase[req.params.id];
   //console.log("userID:", userID);
   //console.log("user:", user);
@@ -225,7 +224,7 @@ app.get("/urls/:id", (req, res) => {
   }
 
   const templateVars = {
-    user: users[req.cookies["user_id"]],
+    user: users[req.session["user_id"]],
     id: req.params.id,
     longURL: urlDatabase[req.params.id].longURL
   };
@@ -246,7 +245,7 @@ app.get("/hello", (req, res) => {
 
 //GENERATE RANDOM URL
 app.post("/urls", (req, res) => {
-  const user = req.cookies["user_id"];
+  const user = req.session["user_id"];
   // console.log(req.body);
   // console.log('user:', user);
 
@@ -272,11 +271,11 @@ app.post("/urls/:id/delete", (req, res) => {
     res.send("URL does not exist");
     return;
   }
-  if (!req.cookies["user_id"]) {
+  if (!req.session["user_id"]) {
     res.send('You are not logged in!');
     return;
   }
-  if (req.cookies["user_id"] !== urlDatabase[req.params.id].userID) {
+  if (req.session["user_id"] !== urlDatabase[req.params.id].userID) {
     res.send('You dont have permission to access urls!');
   }
   const urlToDelete = req.params.id;
@@ -292,11 +291,11 @@ app.post("/urls/:id/", (req, res) => {
     res.send("URL does not exist");
     return;
   }
-  if (!req.cookies["user_id"]) {
+  if (!req.session["user_id"]) {
     res.send("You are not logged in!");
     return;
   }
-  if (req.cookies["user_id"] !== urlDatabase[req.params.id].userID) {
+  if (req.session["user_id"] !== urlDatabase[req.params.id].userID) {
     res.send("You don't have permission to access urls!");
   }
 
