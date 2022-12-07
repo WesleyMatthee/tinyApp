@@ -3,7 +3,7 @@ const express = require("express");
 const cookieParser = require('cookie-parser');
 const bcrypt = require("bcryptjs");
 const cookieSession = require("cookie-session");
-const { 
+const {
 
   getUserByEmail,
   generateRandomString,
@@ -62,7 +62,12 @@ app.use(cookieParser());
 //---------------------------ROUTES/ENDPOINTS-----------
 //HOME
 app.get("/", (req, res) => {
-  res.send("Hello!");
+  const userID = req.session.user_id;
+  const user = users[userID];
+  if (!user) {
+  return res.redirect("/login");
+  }
+  return res.redirect("/urls");
 });
 
 //GET JSON
@@ -77,13 +82,13 @@ app.get("/hello", (req, res) => {
 
 //GET URLS
 app.get("/urls", (req, res) => {
-  console.log(urlDatabase);
+
   const userID = req.session.user_id;
   const user = users[userID];
   if (!user) {
     res.send("<html><body>Please <b>login</b> or <b>register</b></body></html>\n");
   }
-  const urlData = urlsForUser(userID);
+  const urlData = urlsForUser(userID, urlDatabase);
 
   const templateVars = {
     user: user,
@@ -95,7 +100,7 @@ app.get("/urls", (req, res) => {
 
 //GET URLS NEW
 app.get("/urls/new", (req, res) => {
-  const user = getUserFromReq(req);
+  const user = getUserFromReq(req, users);
 
   if (!user) {
     res.redirect("/login");
@@ -110,18 +115,13 @@ app.get("/urls/new", (req, res) => {
 
 //GET URLS ID
 app.get("/urls/:id", (req, res) => {
-  const user = getUserFromReq(req);
-  // const userID = req.session.user_id;
-  // const user = urlDatabase[req.params.id];
-  //console.log("userID:", userID);
-  //console.log("user:", user);
+  const user = getUserFromReq(req, users);
 
   if (!user) {
     return res.redirect("/login");
-    // return res.send("<html><body>Please log in!</body></html>\n");
   }
 
-  if (!urlBelongsToUser(user.id, req.params.id)) {
+  if (!urlBelongsToUser(user.id, req.params.id, urlDatabase)) {
 
     res.status(403);
     res.send("<html><body>This URL doesn't belong to you!</body></html>\n");
@@ -140,21 +140,19 @@ app.get("/urls/:id", (req, res) => {
 //GENERATE RANDOM URL
 app.post("/urls", (req, res) => {
   const user = req.session["user_id"];
-  // console.log(req.body);
-  // console.log('user:', user);
 
   if (!user) {
     res.send("<html><body>Please login to use Tiny App, thank you!</body></html>\n");
     return;
   }
-  //console.log("urlDatabase 1:", urlDatabase);
+
   const id = generateRandomString();
   const longURL = req.body.longURL;
   urlDatabase[id] = {
     longURL,
     userID: user
   };
-  // console.log("urlDatabase 2:", urlDatabase);
+
 
   res.redirect(`/urls/${id}`);
 });
@@ -162,15 +160,14 @@ app.post("/urls", (req, res) => {
 //POST DELETE
 app.post("/urls/:id/delete", (req, res) => {
   if (!urlDatabase[req.params.id]) {
-    res.send("URL does not exist");
-    return;
+    return res.status(400).send("URL does not exist");
+
   }
   if (!req.session["user_id"]) {
-    res.send('You are not logged in!');
-    return;
+    return res.status(401).send("Your not logged in");
   }
   if (req.session["user_id"] !== urlDatabase[req.params.id].userID) {
-    res.send('You dont have permission to access urls!');
+    return res.status(403).send('You dont have permission to access urls!');
   }
   const urlToDelete = req.params.id;
   delete urlDatabase[urlToDelete];
@@ -194,15 +191,15 @@ app.post("/urls/:id/", (req, res) => {
 
 
   if (!urlDatabase[req.params.id]) {
-    res.send("URL does not exist");
-    return;
+    return res.status(400).send("URL does not exist");
+
   }
   if (!req.session["user_id"]) {
-    res.send("You are not logged in!");
-    return;
+    return res.status(401).send("You are not logged in");
+
   }
   if (req.session["user_id"] !== urlDatabase[req.params.id].userID) {
-    res.send("You don't have permission to access urls!");
+    return res.status(403).send("You don't have permission to access urls!");
   }
 
   urlDatabase[req.params.id].longURL = req.body.updatedUrl;
@@ -213,7 +210,7 @@ app.post("/urls/:id/", (req, res) => {
 app.post("/login", (req, res) => {
   const user_email = req.body.email;
   const user_password = req.body.password;
-  const user = getUserByEmail(user_email);
+  const user = getUserByEmail(user_email, users);
 
   if (user === null) {
     return res.send(403, "You do not have rights to visit this page!");
@@ -229,6 +226,21 @@ app.post("/login", (req, res) => {
   res.redirect("/urls");
 });
 
+//GET LOGIN
+app.get("/login", (req, res) => {
+  const user = getUserFromReq(req, users);
+  if (user) {
+    res.redirect("/urls");
+
+  } else {
+    const templateVars =
+    {
+      user: user
+    };
+    res.render("urls_login", templateVars);
+  }
+});
+
 //LOGOUT
 app.post("/logout", (req, res) => {
 
@@ -238,7 +250,7 @@ app.post("/logout", (req, res) => {
 
 //GET REGISTRATION
 app.get("/register", (req, res) => {
-  const user = getUserFromReq(req);
+  const user = getUserFromReq(req, users);
   if (user) {
     res.redirect("/urls");
     return;
@@ -255,7 +267,7 @@ app.post("/register", (req, res) => {
   const user_email = req.body.email;
   const user_password = req.body.password;
 
-  if (!user_email || !user_password || getUserByEmail(user_email)) {
+  if (!user_email || !user_password || getUserByEmail(user_email, users)) {
     res.status(400).send("Invalid entry, please try again!");
   }
 
@@ -270,20 +282,6 @@ app.post("/register", (req, res) => {
 
 });
 
-//GET LOGIN
-app.get("/login", (req, res) => {
-  const user = getUserFromReq(req);
-  if (user) {
-    res.redirect("/urls");
-
-  } else {
-    const templateVars =
-    {
-      user: user
-    };
-    res.render("urls_login", templateVars);
-  }
-});
 
 //------------------------LISTNER---------------------
 app.listen(PORT, () => {

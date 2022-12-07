@@ -21,7 +21,7 @@ function generateRandomString() {
 };
 
 //URLS FOR USER
-const urlsForUser = function(id) {
+const urlsForUser = function(id, urlDatabase) {
   const result = {};
   for (const user in urlDatabase) {
     if (id === urlDatabase[user].userID) {
@@ -33,7 +33,7 @@ const urlsForUser = function(id) {
 };
 
 //URLS BELONGS TO USER
-const urlBelongsToUser = function(userID, shortUrl) {
+const urlBelongsToUser = function(userID, shortUrl, urlDatabase) {
   const urlInfo = urlDatabase[shortUrl];
   if (urlInfo && urlInfo.userID === userID) {
     return true;
@@ -42,7 +42,7 @@ const urlBelongsToUser = function(userID, shortUrl) {
 };
 
 //GET USER FROM REQ
-const getUserFromReq = function(req) {
+const getUserFromReq = function(req, users) {
   const userID = req.session.user_id;
   const user = users[userID];
   if (!user) {
