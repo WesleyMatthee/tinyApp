@@ -82,7 +82,6 @@ app.get("/hello", (req, res) => {
 
 //GET URLS
 app.get("/urls", (req, res) => {
-
   const userID = req.session.user_id;
   const user = users[userID];
   if (!user) {
